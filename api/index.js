@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // URL нашего Google Apps Script
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbztp8U3T1lvj_qxkNhknJBV_zlg83QUMe6irS8Jk9QvD_vskgjXQQ9r_GXOagocCdA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxo-U93jUFJNrCd1uwhK8qXXlUZK59tbzjMV_PlOZ_AcTtcJcik2PfF-Vy29E_4Its/exec';
 
 // Вспомогательная функция для запросов к GAS
 async function fetchGAS(action, params = {}) {
