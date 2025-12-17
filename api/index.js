@@ -32,12 +32,13 @@ async function fetchGAS(action, params = {}) {
         });
 
         const text = await response.text();
+        console.log(`[Vercel API Debug] GAS Response for ${action}:`, text.substring(0, 500)); // Логируем первые 500 символов ответа
 
         try {
             const data = JSON.parse(text);
             return data;
         } catch (e) {
-            console.error('[Vercel API] JSON Parse Error:', text);
+            console.error('[Vercel API] JSON Parse Error. Received:', text);
             throw new Error('Invalid JSON response from GAS');
         }
     } catch (error) {
