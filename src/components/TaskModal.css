@@ -1,0 +1,161 @@
+/* ... existing styles ... */
+
+.modal {
+    /* Мы удалили класс 'modal' из использования в JSX, теперь используем modal-wrapper */
+    /* Но оставим его для переиспользования если потребуется */
+}
+
+.modal-wrapper {
+    position: relative;
+    /* background удален отсюда, он будет внутри */
+    max-width: 500px;
+    width: 100%;
+    animation: slideUp var(--transition-normal);
+    /* overflow: visible - обязательно для человечка */
+    overflow: visible;
+}
+
+.modal-content-scrollable {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-lg);
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 5;
+    /* Чтобы контент был поверх фоновых элементов если что */
+}
+
+/* Старый класс modal-character-img остается таким же */
+.modal-character-img {
+    position: absolute;
+    top: -85px;
+    /* Чуть поправил */
+    right: -15px;
+    width: 110px;
+    height: 110px;
+    pointer-events: none;
+    z-index: 10;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-character-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0) rotate(-20deg);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Subtasks Styles */
+.subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.subtask-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.subtask-content strong {
+    color: var(--accent-primary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.subtask-content p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.subtask-links {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.btn-small {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-small:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* Pastas (Copyable Text) Styles */
+.pastas-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.pasta-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.pasta-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-success);
+}
+
+.pasta-item p {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    margin-bottom: var(--spacing-sm);
+}
+
+.pasta-action {
+    font-size: 0.75rem;
+    color: var(--accent-success);
+    text-align: right;
+    font-weight: 600;
+    text-transform: uppercase;
+    height: 1.2em;
+}
