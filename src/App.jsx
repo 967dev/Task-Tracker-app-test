@@ -6,9 +6,14 @@ import ProgressBar from './components/ProgressBar'
 import Background from './components/Background'
 
 // Тестовое задание из ТЗ
+// Константы проекта
+const ADMIN_ID = 1392201995;
+const MAX_DAYS = 11;
+
 const TASKS = [
     {
         id: 1,
+        day: 1, // Откроется в 1-й день
         title: 'Новогодний Репост',
         emoji: '📢',
         description: 'Сделать репост поста-анонса этого розыгрыша в сторис и отметить наш канал.',
@@ -23,6 +28,7 @@ const TASKS = [
     },
     {
         id: 2,
+        day: 2, // Откроется во 2-й день
         title: 'Снеговик-Комьюнити',
         emoji: '⛄',
         description: 'Собери снеговика из эмодзи в одном сообщении!',
@@ -35,6 +41,7 @@ const TASKS = [
     },
     {
         id: 3,
+        day: 3,
         title: 'Креативный Гений',
         emoji: '🎨',
         description: 'Создать лучший мем или арт на новогоднюю тему, связанную с Bidask и TON.',
@@ -47,6 +54,7 @@ const TASKS = [
     },
     {
         id: 4,
+        day: 4,
         title: 'Виртуальная Елка',
         emoji: '🎄',
         description: 'Собери ёлку из эмодзи в одном сообщении!',
@@ -59,6 +67,7 @@ const TASKS = [
     },
     {
         id: 6,
+        day: 5,
         title: 'Главный Тост',
         emoji: '🥂',
         description: 'Написать самый смешной или вдохновляющий новогодний тост для комьюнити Bidask в комментариях под сегодняшним постом.',
@@ -70,6 +79,7 @@ const TASKS = [
     },
     {
         id: 7,
+        day: 6,
         title: 'Рекрутер Санты',
         emoji: '🎅',
         description: 'Пригласить 1 друга в наш Telegram-чат и прислать ссылку на его первое сообщение.',
@@ -82,6 +92,7 @@ const TASKS = [
     },
     {
         id: 8,
+        day: 7,
         title: 'Лучшее Предсказание',
         emoji: '🔮',
         description: 'Опубликовать в X/Twitter свое самое смелое (и позитивное) предсказание для Bidask на 2026 год (отметить @BidaskProtocol).',
@@ -94,6 +105,7 @@ const TASKS = [
     },
     {
         id: 9,
+        day: 8,
         title: 'Новогодние чаты',
         emoji: '🗣️',
         description: 'Написать в чаты из списка любую пасту на выбор или предложить свою. Выберите один или несколько чатов из списка ниже.',
@@ -127,6 +139,7 @@ const TASKS = [
     },
     {
         id: 10,
+        day: 9,
         title: 'Благодарность Билдерам',
         emoji: '🙏',
         description: 'Написать пост в X/Twitter/ТГ, поблагодарив одного крупного TON-билдера или проект за их работу в 2025 году, и упомянуть @BidaskProtocol.',
@@ -139,6 +152,7 @@ const TASKS = [
     },
     {
         id: 11,
+        day: 10,
         title: 'Снежный Взнос',
         emoji: '💎',
         description: 'Символическая "снежинка": Внести ликвидность от 1 TON в любой пул Bidask (можно вывести после подтверждения).',
@@ -151,6 +165,7 @@ const TASKS = [
     },
     {
         id: 16,
+        day: 11,
         title: 'ТОН Ёлка',
         emoji: '🎄',
         description: 'Отправьте в чат фото вашей ёлки.',
@@ -245,13 +260,16 @@ function App() {
             }
 
             const data = await response.json()
+            const currentDay = data.currentDay || 1;
 
-            // Объединяем статические задания со статусами из базы
-            const tasksWithStatus = TASKS.map(task => ({
-                ...task,
-                status: data.tasks[task.id] || 'pending',
-                proofLink: data.proofLinks[task.id] || ''
-            }))
+            // Объединяем статические задания со статусами из базы и ФИЛЬТРУЕМ по текущему активному дню
+            const tasksWithStatus = TASKS
+                .filter(task => task.day <= currentDay)
+                .map(task => ({
+                    ...task,
+                    status: data.tasks[task.id] || 'pending',
+                    proofLink: data.proofLinks[task.id] || ''
+                }))
 
             setTasks(tasksWithStatus)
         } catch (err) {
@@ -334,6 +352,7 @@ function App() {
 
                 {user && (
                     <>
+                        {user.userId === ADMIN_ID && <AdminPanel userId={user.userId} onUpdate={() => loadTaskStatuses(user.userId)} />}
                         <UserInfo user={user} />
                         <ProgressBar tasks={tasks} />
                     </>
@@ -360,5 +379,69 @@ function App() {
         </>
     )
 }
+
+const AdminPanel = ({ userId, onUpdate }) => {
+    const [updating, setUpdating] = useState(false);
+
+    const setDay = async (day) => {
+        setUpdating(true);
+        try {
+            const res = await fetch('/api/admin/set-day', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, day })
+            });
+            const data = await res.json();
+            if (data.success) {
+                onUpdate();
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        } catch (e) { alert('Ошибка сети: ' + e.message); }
+        setUpdating(false);
+    };
+
+    return (
+        <div className="admin-panel" style={{
+            padding: '15px',
+            background: 'rgba(255, 140, 0, 0.1)',
+            border: '1px solid rgba(255, 140, 0, 0.3)',
+            borderRadius: '15px',
+            marginBottom: '20px',
+            backdropFilter: 'blur(10px)'
+        }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#ff8c00', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                🛡 Панель администратора
+            </h3>
+            <p style={{ fontSize: '11px', margin: '0 0 12px 0', color: '#e2e8f0', opacity: 0.8 }}>
+                Только вы видите этот блок. Выберите день, чтобы открыть задания для всех:
+            </p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[...Array(MAX_DAYS)].map((_, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setDay(i + 1)}
+                        disabled={updating}
+                        style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: 'white',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+                        onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
+                    >
+                        {i + 1}
+                    </button>
+                ))}
+            </div>
+            {updating && <p style={{ fontSize: '10px', marginTop: '10px', color: '#ff8c00' }}>Обновление...</p>}
+        </div>
+    );
+};
 
 export default App

@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // URL нашего Google Apps Script
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw56NzhNGWzvCS47P5G9f_fC7-TyKRjIjMrw4j2WIhapBzVYUh4vnS_ChnGqAGpGuM/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbylRT9qx8uctGfkFBjiH7OBQat0Ofs5M7R0TZe72WUMs3O3n2fqeeUGy2GnhmTJlP0/exec';
 
 // Вспомогательная функция для запросов к GAS
 async function fetchGAS(action, params = {}) {
@@ -103,4 +103,15 @@ app.post('/api/submit', async (req, res) => {
 });
 
 // Экспортируем приложение для Vercel
+// Обновление текущего дня (только для админа)
+app.post('/api/admin/set-day', async (req, res) => {
+    try {
+        const { userId, day } = req.body;
+        const data = await fetchGAS('setGlobalDay', { userId, day });
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = app;
