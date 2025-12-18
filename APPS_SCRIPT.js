@@ -1,13 +1,9 @@
 // 📋 ИНСТРУКЦИЯ:
-// 1. Откройте вашу Google Таблицу
-// 2. Перейдите в Расширения > Apps Script (Extensions > Apps Script)
-// 3. Скопируйте этот код и вставьте вместо всего, что там есть
-// 4. Нажмите "Начать развертывание" > "Новое развертывание" (Deploy > New deployment)
-// 5. Выберите тип: "Веб-приложение" (Web app)
-// 6. Описание: "v1"
-// 7. От имени: "Меня" (Me)
-// 8. У кого есть доступ: "Всех" (Anyone) - ЭТО ВАЖНО!
-// 9. Нажмите "Начать развертывание" и скопируйте полученный URL (Web App URL)
+// 1. Вставьте этот код в Google Apps Script.
+// 2. Создайте НОВОЕ развертывание (Deploy > New deployment).
+// 3. Скопируйте новый URL.
+
+const TASK_IDS = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 16];
 
 function doGet(e) {
     return handleRequest(e);
@@ -19,130 +15,124 @@ function doPost(e) {
 
 function handleRequest(e) {
     const lock = LockService.getScriptLock();
-    lock.tryLock(10000);
+    lock.waitLock(30000);
 
     try {
         const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 
-        // Инициализация заголовков, если таблица пустая
+        // Инициализация заголовков
         if (sheet.getLastRow() === 0) {
-            const headers = ['User ID', 'Username', 'Задание 1 (Тест)', 'Задание 2', 'Дата регистрации'];
+            const headers = ['User ID', 'Username'];
+            TASK_IDS.forEach(id => headers.push(`Задание ${id}`));
+            headers.push('Дата регистрации');
             sheet.appendRow(headers);
         }
 
         // Разбор параметров
         let requestData = {};
-        if (e.postData && e.postData.contents) {
-            requestData = JSON.parse(e.postData.contents);
-        } else if (e.parameter) {
+        if (e.parameter) {
             requestData = e.parameter;
+        } else if (e.postData && e.postData.contents) {
+            try {
+                requestData = JSON.parse(e.postData.contents);
+            } catch (err) { }
         }
 
         const action = requestData.action;
-        const userId = requestData.userId; // Всегда строкой
+        const userId = requestData.userId ? String(requestData.userId) : null;
 
-        if (!userId) {
+        // Разрешаем getTasks без userId (вернет пустышку), но для остальных нужен ID
+        if (!userId && action !== 'getUserTasks') {
             return responseJSON({ error: 'User ID is required' });
         }
 
         // Поиск пользователя
-        const data = sheet.getDataRange().getValues();
+        const lastRow = sheet.getLastRow();
         let userRowIndex = -1;
 
-        // data[0] - заголовки. Ищем начиная с 1
-        for (let i = 1; i < data.length; i++) {
-            // Сравниваем как строки, чтобы избежать проблем с типами
-            if (String(data[i][0]) === String(userId)) {
-                userRowIndex = i + 1; // Индекс для API (1-based)
-                break;
+        if (lastRow > 1) {
+            // Берем только колонку A (User ID)
+            const userIds = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat().map(String);
+            const index = userIds.indexOf(userId);
+            if (index !== -1) {
+                userRowIndex = index + 2; // +2 к индексу (учитываем заголовок и base-0)
             }
         }
 
-        // === ЛОГИКА ДЕЙСТВИЙ ===
-
-        // 1. АВТОРИЗАЦИЯ / ПОЛУЧЕНИЕ ДАННЫХ
-        if (action === 'auth' || action === 'getTasks') {
-            if (userRowIndex === -1 && action === 'auth') {
-                // Регистрация нового
-                const username = requestData.username || 'unknown';
-                const date = new Date().toLocaleDateString('ru-RU');
-
-                sheet.appendRow([userId, username, '', '', date]);
-                return responseJSON({ success: true, isNewUser: true, tasks: { 1: 'pending', 2: 'pending' }, proofLinks: { 1: '', 2: '' } });
-            } else if (userRowIndex !== -1) {
-                // Пользователь существует, возвращаем данные
-                const rowData = sheet.getRange(userRowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-                // Индексы колонок (начинаются с 0 в массиве rowData):
-                // 0: User ID, 1: Username, 2: Задание 1, 3: Задание 2
-
-                const task1Link = rowData[2];
-                const task2Link = rowData[3];
-
-                const tasks = {
-                    1: task1Link ? 'review' : 'pending',
-                    2: task2Link ? 'review' : 'pending'
-                };
-
-                const proofLinks = {
-                    1: task1Link || '',
-                    2: task2Link || ''
-                };
-
-                return responseJSON({ success: true, isNewUser: false, tasks, proofLinks });
-            } else {
-                return responseJSON({ success: false, error: 'User not found' });
-            }
-        }
-
-        // 2. ОТПРАВКА ОТЧЕТА
-        if (action === 'submit') {
-            const taskNum = requestData.taskNum;
-            const proofLink = requestData.proofLink;
-
-            if (!taskNum || !proofLink) {
-                return responseJSON({ error: 'Missing taskNum or proofLink' });
-            }
+        // === 1. РЕГИСТРАЦИЯ ===
+        if (action === 'registerUser') {
+            const username = requestData.username || 'unknown';
+            const date = new Date().toLocaleDateString('ru-RU');
 
             if (userRowIndex === -1) {
-                return responseJSON({ error: 'User not found for submission' });
+                const newRow = [userId, username];
+                TASK_IDS.forEach(() => newRow.push(''));
+                newRow.push(date);
+                sheet.appendRow(newRow);
+                return responseJSON({ success: true, isNewUser: true });
+            } else {
+                sheet.getRange(userRowIndex, 2).setValue(username);
+                return responseJSON({ success: true, isNewUser: false });
             }
-
-            // Определяем колонку для записи (Задание 1 -> колонка 3, Задание 2 -> колонка 4)
-            // В Sheets API getRange: row, col. Col 1 = A.
-            // Заголовки: A(1), B(2), C(3)...
-            // C = Задание 1. D = Задание 2.
-            // Формула: 2 + taskNum
-
-            const colIndex = 2 + parseInt(taskNum);
-            sheet.getCell(userRowIndex, colIndex).setValue(proofLink);
-
-            return responseJSON({ success: true, message: 'Updated' });
         }
 
-        return responseJSON({ error: 'Unknown action' });
+        // === 2. ПОЛУЧЕНИЕ ЗАДАНИЙ ===
+        if (action === 'getUserTasks') {
+            if (userRowIndex === -1) {
+                return responseJSON({ tasks: {}, proofLinks: {} });
+            }
+
+            // Читаем строку пользователя
+            const rowValues = sheet.getRange(userRowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+            const tasks = {};
+            const proofLinks = {};
+
+            TASK_IDS.forEach((taskId, index) => {
+                const colValue = rowValues[index + 2];
+                const proof = colValue ? String(colValue) : '';
+                proofLinks[taskId] = proof;
+
+                const p = proof.toUpperCase();
+                // Проверяем все варианты: TRUE, true, completed, ok, done, +, 1
+                if (p === 'TRUE' || p === 'COMPLETED' || p === 'OK' || p === 'DONE' || p === '+' || p === '1' || p === 'YES') {
+                    tasks[taskId] = 'completed';
+                } else if (proof && proof.length > 5) {
+                    tasks[taskId] = 'review';
+                } else {
+                    tasks[taskId] = 'pending';
+                }
+            });
+
+            return responseJSON({ tasks, proofLinks });
+        }
+
+        // === 3. ОТПРАВКА ЗАДАНИЯ ===
+        if (action === 'submitTask') {
+            const taskNum = parseInt(requestData.taskNum);
+            const proofLink = requestData.proofLink;
+
+            if (!taskNum || !proofLink) return responseJSON({ error: 'Missing data' });
+            if (userRowIndex === -1) return responseJSON({ error: 'User not found' });
+
+            const taskArrayIndex = TASK_IDS.indexOf(taskNum);
+            if (taskArrayIndex === -1) return responseJSON({ error: 'Invalid Task ID' });
+
+            // ИСПРАВЛЕНИЕ ТУТ: используем getRange вместо getCell
+            const colIndex = taskArrayIndex + 3;
+            sheet.getRange(userRowIndex, colIndex).setValue(proofLink);
+
+            return responseJSON({ success: true });
+        }
+
+        return responseJSON({ error: 'Unknown action: ' + action });
 
     } catch (err) {
-        return responseJSON({ error: err.toString() });
+        return responseJSON({ error: 'Server Error: ' + err.toString() });
     } finally {
         lock.releaseLock();
     }
 }
 
 function responseJSON(data) {
-    return ContentService
-        .createTextOutput(JSON.stringify(data))
-        .setMimeType(ContentService.MimeType.JSON);
-}
-
-// Тестовая функция для проверки в редакторе скриптов
-function test() {
-    const e = {
-        parameter: {
-            action: 'auth',
-            userId: '12345',
-            username: 'test_user'
-        }
-    };
-    Logger.log(doGet(e).getContent());
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }

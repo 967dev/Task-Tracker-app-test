@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import TaskCard from './components/TaskCard'
 import TaskModal from './components/TaskModal'
 import UserInfo from './components/UserInfo'
+import ProgressBar from './components/ProgressBar'
 import Background from './components/Background'
 
 // Тестовое задание из ТЗ
@@ -331,7 +332,12 @@ function App() {
                     </div>
                 </div>
 
-                {user && <UserInfo user={user} />}
+                {user && (
+                    <>
+                        <UserInfo user={user} />
+                        <ProgressBar tasks={tasks} />
+                    </>
+                )}
 
                 <div className="tasks-grid">
                     {tasks.map(task => (
