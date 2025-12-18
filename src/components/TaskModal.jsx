@@ -34,8 +34,12 @@ function TaskModal({ task, onClose, onSubmit }) {
 
   const handleOpenLink = (link) => {
     // Проверяем доступность Telegram WebApp API
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(link)
+    if (window.Telegram && window.Telegram.WebApp) {
+      if (link.startsWith('https://t.me')) {
+        window.Telegram.WebApp.openTelegramLink(link)
+      } else {
+        window.Telegram.WebApp.openLink(link, { try_instant_view: false })
+      }
     } else {
       window.open(link, '_blank')
     }
