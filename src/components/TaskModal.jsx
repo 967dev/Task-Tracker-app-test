@@ -155,7 +155,7 @@ function TaskModal({ task, onClose, onSubmit }) {
                     <label htmlFor="proofLink">
                       {task.id === 9
                         ? "Ссылка на одно из ваших сообщений или скриншот"
-                        : "Ссылка на доказательство (сообщение/скриншот)"}
+                        : "Ваша ссылка"}
                     </label>
                     <input
                       id="proofLink"
